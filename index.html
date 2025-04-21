@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://*.aws.amazon.com https://*.my.connect.aws;">
     <title>Ameya KD's Portfolio</title>
+    <!-- Amazon Connect Streams API -->
+    <script src="https://amazon-connect.github.io/amazon-connect-streams/release/connect-streams.js"></script>
     <style>
         * {
             margin: 0;
@@ -153,6 +156,20 @@
             transform: scale(1.1);
         }
 
+        #connect {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-top: 2rem;
+        }
+
+        #ccpContainer {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            margin: 0 auto;
+        }
+
         @media (max-width: 768px) {
             .hero-content h1 {
                 font-size: 2.5rem;
@@ -167,6 +184,7 @@
             <li><a href="#about">About</a></li>
             <li><a href="#projects">Projects</a></li>
             <li><a href="#skills">Skills</a></li>
+            <li><a href="#connect">Contact Center</a></li>
         </ul>
     </nav>
 
@@ -211,6 +229,11 @@
         </div>
     </section>
 
+    <section id="connect" class="section">
+        <h2>Contact Center Panel</h2>
+        <div id="ccpContainer" style="width: 400px; height: 800px;"></div>
+    </section>
+
     <script>
         // Typing effect
         const texts = [
@@ -245,6 +268,48 @@
             }
 
             setTimeout(typeText, isDeleting ? deletingSpeed : typingSpeed);
+        }
+
+        // Initialize Amazon Connect
+        function initConnect() {
+            const ccpUrl = "https://ameyakd.my.connect.aws/ccp-v2/";
+            const container = document.getElementById("ccpContainer");
+
+            // Initialize CCP
+            connect.core.initCCP(container, {
+                ccpUrl: ccpUrl,
+                loginPopup: true,
+                softphone: {
+                    allowFramedSoftphone: true
+                }
+            });
+
+            // Handle agent events
+            connect.agent(function(agent) {
+                agent.onStateChange(function(agentStateChange) {
+                    console.log("Agent state changed to: " + agentStateChange.newState);
+                });
+            });
+
+            // Handle contact events
+            connect.contact(function(contact) {
+                contact.onConnecting(function() {
+                    console.log("Contact connecting...");
+                });
+
+                contact.onConnected(function() {
+                    console.log("Contact connected!");
+                });
+
+                contact.onEnded(function() {
+                    console.log("Contact ended");
+                });
+            });
+
+            // Handle errors
+            connect.core.onError(function(err) {
+                console.error("Connect error:", err);
+            });
         }
 
         // Start typing effect
@@ -285,6 +350,15 @@
             card.style.transform = 'translateY(20px)';
             card.style.transition = 'all 0.5s ease';
             observer.observe(card);
+        });
+
+        // Initialize everything when document is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                initConnect();
+            } catch (error) {
+                console.error("Failed to initialize Connect:", error);
+            }
         });
     </script>
 </body>
