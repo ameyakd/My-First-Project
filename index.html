@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://*.aws.amazon.com https://*.my.connect.aws;">
+    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://*.my.connect.aws https://*.aws.amazon.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.my.connect.aws https://*.aws.amazon.com;">
     <title>Ameya KD's Portfolio</title>
     <!-- Amazon Connect Streams API -->
     <script src="https://amazon-connect.github.io/amazon-connect-streams/release/connect-streams.js"></script>
@@ -325,42 +326,51 @@
         }
 
         function initConnect() {
-            const ccpUrl = "https://ameyakd.my.connect.aws/ccp-v2/";
+            const ccpUrl = "https://ameyakd.my.connect.aws/connect/ccp-v2/";
             const container = document.getElementById("ccpContainer");
 
-            try {
-                connect.core.initCCP(container, {
-                    ccpUrl: ccpUrl,
+            const connectConfig = {
+                containerDiv: container,
+                ccpUrl: ccpUrl,
+                ccpParams: {
                     loginPopup: true,
+                    loginPopupAutoClose: true,
                     softphone: {
-                        allowFramedSoftphone: true
+                        allowFramedSoftphone: true,
+                        disableRingtone: false
                     }
+                },
+                region: "ap-south-1" // Make sure this matches your Connect instance region
+            };
+
+            try {
+                connect.core.initCCP(connectConfig);
+                console.log("CCP initialization started");
+
+                // Add error logging
+                connect.core.onError(function(err) {
+                    console.error("Connect Error:", err);
                 });
 
-                // Handle agent events
+                // Add initialization success logging
+                connect.core.onInitialized(function() {
+                    console.log("Connect CCP initialized successfully");
+                });
+
+                // Handle agent events with error catching
                 connect.agent(function(agent) {
-                    agent.onStateChange(function(agentStateChange) {
-                        console.log("Agent state changed to: " + agentStateChange.newState);
-                    });
-                });
-
-                // Handle contact events
-                connect.contact(function(contact) {
-                    contact.onConnecting(function() {
-                        console.log("Contact connecting...");
-                    });
-
-                    contact.onConnected(function() {
-                        console.log("Contact connected!");
-                    });
-
-                    contact.onEnded(function() {
-                        console.log("Contact ended");
-                    });
+                    try {
+                        agent.onStateChange(function(agentStateChange) {
+                            console.log("Agent state changed to:", agentStateChange.newState);
+                        });
+                    } catch (error) {
+                        console.error("Error in agent handling:", error);
+                    }
                 });
 
             } catch (error) {
                 console.error("Failed to initialize Connect:", error);
+                alert("Failed to connect to Amazon Connect. Please check console for details.");
             }
         }
 
