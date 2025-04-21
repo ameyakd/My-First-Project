@@ -3,214 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://*.my.connect.aws https://*.aws.amazon.com;">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.my.connect.aws https://*.aws.amazon.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.my.connect.aws https://*.aws.amazon.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://amazon-connect.github.io; frame-src 'self' https://*.my.connect.aws https://*.aws.amazon.com;">
     <title>Ameya KD's Portfolio</title>
-    <!-- Amazon Connect Streams API -->
     <script src="https://amazon-connect.github.io/amazon-connect-streams/release/connect-streams.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
         body {
-            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
-            color: #ffffff;
+            font-family: Arial, sans-serif;
             line-height: 1.6;
-        }
-
-        nav {
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 1rem;
-            position: fixed;
-            width: 100%;
-            z-index: 1000;
-        }
-
-        nav ul {
-            display: flex;
-            justify-content: center;
-            list-style: none;
-        }
-
-        nav ul li {
-            margin: 0 1.5rem;
-        }
-
-        nav ul li a {
-            color: #ffffff;
-            text-decoration: none;
-            font-size: 1.1rem;
-            transition: color 0.3s ease;
-        }
-
-        nav ul li a:hover {
-            color: #00ff88;
-        }
-
-        .hero {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 2rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, #ff0055, #00ff88, #0077ff);
-            animation: backgroundShift 15s ease infinite;
-            opacity: 0.1;
-        }
-
-        @keyframes backgroundShift {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-
-        .hero-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .hero-content h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            color: #00ff88;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .typing-text {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            min-height: 2em;
-        }
-
-        .cta-button {
-            background-color: #00ff88;
-            color: #1a1a1a;
-            padding: 1.2rem 2.5rem;
-            border: none;
-            border-radius: 5px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,255,136,0.2);
-        }
-
-        .cta-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(0,255,136,0.4);
-            background-color: #00e677;
-        }
-
-        .cta-button:active {
-            transform: scale(0.98);
-        }
-
-        .section {
-            padding: 5rem 2rem;
-            max-width: 1200px;
+            color: #333;
+            max-width: 800px;
             margin: 0 auto;
+            padding: 20px;
         }
-
-        .projects-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
+        nav ul {
+            list-style-type: none;
+            padding: 0;
         }
-
-        .project-card {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-            cursor: pointer;
+        nav ul li {
+            display: inline;
+            margin-right: 10px;
         }
-
-        .project-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+        h1, h2 {
+            color: #2c3e50;
         }
-
-        .skills-section {
-            text-align: center;
-            padding: 3rem 0;
+        .project {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
         }
-
         .skill-tag {
             display: inline-block;
-            padding: 0.5rem 1rem;
-            margin: 0.5rem;
-            background: rgba(0,255,136,0.2);
-            border-radius: 20px;
-            transition: all 0.3s ease;
+            background-color: #3498db;
+            color: white;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 3px;
         }
-
-        .skill-tag:hover {
-            background: rgba(0,255,136,0.4);
-            transform: scale(1.1);
-        }
-
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 1;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
         }
-
         .modal-content {
-            background: rgba(255, 255, 255, 0.1);
-            margin: 5% auto;
+            background-color: #fefefe;
+            margin: 15% auto;
             padding: 20px;
-            border-radius: 10px;
-            width: 440px;
-            position: relative;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
         }
-
-        .close-button {
-            color: #ffffff;
+        .close {
+            color: #aaa;
             float: right;
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
-            margin-bottom: 10px;
         }
-
-        .close-button:hover {
-            color: #00ff88;
-        }
-
         #ccpContainer {
-            width: 400px;
-            height: 600px;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        @media (max-width: 768px) {
-            .hero-content h1 {
-                font-size: 2.5rem;
-            }
+            width: 100%;
+            height: 450px;
         }
     </style>
 </head>
@@ -224,40 +83,35 @@
         </ul>
     </nav>
 
-    <section id="home" class="hero">
-        <div class="hero-content">
-            <h1>Hello, I'm Ameya KD</h1>
-            <div class="typing-text" id="typing-text"></div>
-            <button class="cta-button" onclick="openConnectModal()">Amazon Connect Agent Login</button>
-        </div>
+    <section id="home">
+        <h1>Hello, I'm Ameya KD</h1>
+        <button onclick="openConnectModal()">Amazon Connect Agent Login</button>
     </section>
 
-    <section id="about" class="section">
+    <section id="about">
         <h2>About Me</h2>
         <p>Welcome to my first interactive webpage! I'm passionate about technology and creating amazing things with code.</p>
     </section>
 
-    <section id="projects" class="section">
+    <section id="projects">
         <h2>My Projects</h2>
-        <div class="projects-grid">
-            <div class="project-card" onclick="projectClick(1)">
-                <h3>Project 1</h3>
-                <p>Click to learn more about this exciting project!</p>
-            </div>
-            <div class="project-card" onclick="projectClick(2)">
-                <h3>Project 2</h3>
-                <p>Another amazing project in the works.</p>
-            </div>
-            <div class="project-card" onclick="projectClick(3)">
-                <h3>Project 3</h3>
-                <p>More exciting developments coming soon!</p>
-            </div>
+        <div class="project">
+            <h3>Project 1</h3>
+            <p>Click to learn more about this exciting project!</p>
+        </div>
+        <div class="project">
+            <h3>Project 2</h3>
+            <p>Another amazing project in the works.</p>
+        </div>
+        <div class="project">
+            <h3>Project 3</h3>
+            <p>More exciting developments coming soon!</p>
         </div>
     </section>
 
-    <section id="skills" class="skills-section">
+    <section id="skills">
         <h2>Skills</h2>
-        <div class="skill-tags">
+        <div>
             <span class="skill-tag">HTML</span>
             <span class="skill-tag">CSS</span>
             <span class="skill-tag">JavaScript</span>
@@ -267,47 +121,12 @@
 
     <div id="connectModal" class="modal">
         <div class="modal-content">
-            <span class="close-button">&times;</span>
+            <span class="close">&times;</span>
             <div id="ccpContainer"></div>
         </div>
     </div>
 
     <script>
-        // Typing effect
-        const texts = [
-            "Welcome to my first website!",
-            "Exploring the world of web development",
-            "Learning and growing every day"
-        ];
-        let textIndex = 0;
-        let charIndex = 0;
-        let isDeleting = false;
-        const typingSpeed = 100;
-        const deletingSpeed = 50;
-        const pauseTime = 2000;
-
-        function typeText() {
-            const currentText = texts[textIndex];
-            const typingElement = document.getElementById('typing-text');
-
-            if (isDeleting) {
-                typingElement.textContent = currentText.substring(0, charIndex);
-                charIndex--;
-            } else {
-                typingElement.textContent = currentText.substring(0, charIndex);
-                charIndex++;
-            }
-
-            if (!isDeleting && charIndex === currentText.length) {
-                setTimeout(() => isDeleting = true, pauseTime);
-            } else if (isDeleting && charIndex === 0) {
-                isDeleting = false;
-                textIndex = (textIndex + 1) % texts.length;
-            }
-
-            setTimeout(typeText, isDeleting ? deletingSpeed : typingSpeed);
-        }
-
         let connectInitialized = false;
 
         function openConnectModal() {
@@ -332,14 +151,8 @@
             const connectConfig = {
                 containerDiv: container,
                 ccpUrl: ccpUrl,
-                ccpParams: {
-                    loginPopup: true,
-                    loginPopupAutoClose: true,
-                    softphone: {
-                        allowFramedSoftphone: true,
-                        disableRingtone: false
-                    }
-                },
+                loginPopup: true,
+                loginPopupAutoClose: true,
                 region: "ap-south-1" // Make sure this matches your Connect instance region
             };
 
@@ -347,25 +160,12 @@
                 connect.core.initCCP(connectConfig);
                 console.log("CCP initialization started");
 
-                // Add error logging
                 connect.core.onError(function(err) {
                     console.error("Connect Error:", err);
                 });
 
-                // Add initialization success logging
                 connect.core.onInitialized(function() {
                     console.log("Connect CCP initialized successfully");
-                });
-
-                // Handle agent events with error catching
-                connect.agent(function(agent) {
-                    try {
-                        agent.onStateChange(function(agentStateChange) {
-                            console.log("Agent state changed to:", agentStateChange.newState);
-                        });
-                    } catch (error) {
-                        console.error("Error in agent handling:", error);
-                    }
                 });
 
             } catch (error) {
@@ -374,56 +174,12 @@
             }
         }
 
-        // Start typing effect
-        typeText();
-
-        // Smooth scrolling
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
-        });
-
-        // Project card click handler
-        function projectClick(number) {
-            alert(`You clicked Project ${number}! This is where you can add more details about your project.`);
-        }
-
-        // Animation for project cards
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = 1;
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        });
-
-        document.querySelectorAll('.project-card').forEach((card) => {
-            card.style.opacity = 0;
-            card.style.transform = 'translateY(20px)';
-            card.style.transition = 'all 0.5s ease';
-            observer.observe(card);
-        });
-
-        // Initialize everything when document is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            const modal = document.getElementById("connectModal");
-            const closeButton = document.getElementsByClassName("close-button")[0];
-
-            // Close modal when clicking the X button
-            closeButton.onclick = closeConnectModal;
-
-            // Close modal when clicking outside
-            window.onclick = function(event) {
-                if (event.target === modal) {
-                    closeConnectModal();
-                }
+        document.querySelector(".close").onclick = closeConnectModal;
+        window.onclick = function(event) {
+            if (event.target == document.getElementById("connectModal")) {
+                closeConnectModal();
             }
-        });
+        }
     </script>
 </body>
 </html>
