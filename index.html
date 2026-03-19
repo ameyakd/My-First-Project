@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +7,7 @@
     <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://*.aws.amazon.com https://*.my.connect.aws;">
     <title>Ameya KD's Portfolio</title>
     <!-- Amazon Connect Streams API -->
-    <script src="https://amazon-connect.github.io/amazon-connect-streams/release/connect-streams.js"></script>
+    <script src="https://amazon-connect.github.io/amazon-connect-streams/release/connect-streams-2.25.0.js"></script>
     <style>
         * {
             margin: 0;
@@ -216,6 +217,30 @@
             box-shadow: 0 0 20px rgba(0,255,136,0.3);
         }
 
+        .contact-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .contact-info label {
+            display: block;
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .contact-info input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid rgba(0,255,136,0.3);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #1a1a1a;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px) {
             .hero-content h1 {
                 font-size: 2.5rem;
@@ -278,6 +303,21 @@
     <div id="connectModal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
+            
+            <!-- Contact Information Display -->
+            <div class="contact-info">
+                <div>
+                    <label for="contactId">Contact ID:</label>
+                    <input type="text" id="contactId" name="contactId" readonly>
+                </div>
+            </div>
+            <div class="contact-info">
+                <div>
+                    <label for="ext-conn">Quick Connect Connection Phone Number:</label>
+                    <input type="text" id="ext-conn" name="ext-conn" readonly>
+                </div>
+            </div>
+            
             <div id="ccpContainer"></div>
         </div>
     </div>
@@ -355,18 +395,33 @@
                     });
                 });
 
-                // Handle contact events
+                // Handle contact events with tracking
                 connect.contact(function(contact) {
                     contact.onConnecting(function() {
                         console.log("Contact connecting...");
                     });
 
-                    contact.onConnected(function() {
-                        console.log("Contact connected!");
+                    contact.onConnected(function(contact) {
+                        console.log("Connected contact: ", contact);
+                        // Populate Contact ID field
+                        document.getElementById("contactId").value = contact.contactId;
+                    });
+
+                    contact.onRefresh(function(contact) {
+                        var conns = contact.getConnections();
+                        console.log("Contact connections: ", conns);
+                        // Check if there's a third connection (Quick Connect)
+                        if (conns.length > 2) {
+                            var phoneNumber = conns[2].getAddress().phoneNumber;
+                            document.getElementById("ext-conn").value = phoneNumber;
+                        }
                     });
 
                     contact.onEnded(function() {
                         console.log("Contact ended");
+                        // Clear fields when contact ends
+                        document.getElementById("contactId").value = "";
+                        document.getElementById("ext-conn").value = "";
                     });
                 });
 
@@ -433,3 +488,4 @@
     </script>
 </body>
 </html>
+
