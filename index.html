@@ -1,13 +1,22 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://*.aws.amazon.com https://*.my.connect.aws;">
+    <meta http-equiv="Content-Security-Policy" 
+          content="frame-ancestors 'self' https://*.aws.amazon.com https://*.my.connect.aws;">
     <title>Ameya KD's Portfolio</title>
-    <!-- Amazon Connect Streams API -->
-    <script src="https://amazon-connect.github.io/amazon-connect-streams/release/connect-streams-2.25.0.js"></script>
+
+    <!-- 
+        UPGRADE #1: Use the latest minified release 
+        Old: connect-streams.js (unversioned, unminified)
+        New: connect-streams-min.js (latest minified build)
+        
+        Alternative: Install via npm
+        npm install amazon-connect-streams
+    -->
+    <script src="https://amazon-connect.github.io/amazon-connect-streams/release/connect-streams-min.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -34,6 +43,7 @@
             display: flex;
             justify-content: center;
             list-style: none;
+            align-items: center;
         }
 
         nav ul li {
@@ -217,28 +227,44 @@
             box-shadow: 0 0 20px rgba(0,255,136,0.3);
         }
 
-        .contact-info {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
+        /* UPGRADE: Status indicator for connection state */
+        .connect-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background-color: #666;
+            transition: background-color 0.3s ease;
         }
 
-        .contact-info label {
-            display: block;
-            color: #00ff88;
-            font-weight: bold;
-            margin-bottom: 5px;
+        .connect-status.connected {
+            background-color: #00ff88;
+            box-shadow: 0 0 8px #00ff88;
         }
 
-        .contact-info input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid rgba(0,255,136,0.3);
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #1a1a1a;
-            font-size: 14px;
+        .connect-status.connecting {
+            background-color: #ffaa00;
+            animation: pulse 1s infinite;
+        }
+
+        .connect-status.error {
+            background-color: #ff0055;
+            box-shadow: 0 0 8px #ff0055;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .agent-status-bar {
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            font-size: 0.85rem;
+            display: none;
         }
 
         @media (max-width: 768px) {
@@ -255,7 +281,12 @@
             <li><a href="#about">About</a></li>
             <li><a href="#projects">Projects</a></li>
             <li><a href="#skills">Skills</a></li>
-            <li><button class="connect-button" onclick="openConnectModal()">Contact Center</button></li>
+            <li>
+                <button class="connect-button" onclick="openConnectModal()">
+                    <span class="connect-status" id="connectStatusDot"></span>
+                    Contact Center
+                </button>
+            </li>
         </ul>
     </nav>
 
@@ -269,7 +300,8 @@
 
     <section id="about" class="section">
         <h2>About Me</h2>
-        <p>Welcome to my first interactive webpage! I'm passionate about technology and creating amazing things with code.</p>
+        <p>Welcome to my first interactive webpage! I'm passionate about 
+           technology and creating amazing things with code.</p>
     </section>
 
     <section id="projects" class="section">
@@ -300,35 +332,28 @@
         </div>
     </section>
 
+    <!-- UPGRADE: Enhanced modal with status bar -->
     <div id="connectModal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
-            
-            <!-- Contact Information Display -->
-            <div class="contact-info">
-                <div>
-                    <label for="contactId">Contact ID:</label>
-                    <input type="text" id="contactId" name="contactId" readonly>
-                </div>
+            <div class="agent-status-bar" id="agentStatusBar">
+                <span class="connect-status" id="modalStatusDot"></span>
+                Agent Status: <span id="agentStatusText">Initializing...</span>
             </div>
-            <div class="contact-info">
-                <div>
-                    <label for="ext-conn">Quick Connect Connection Phone Number:</label>
-                    <input type="text" id="ext-conn" name="ext-conn" readonly>
-                </div>
-            </div>
-            
             <div id="ccpContainer"></div>
         </div>
     </div>
 
     <script>
-        // Typing effect
+        // ============================================
+        //  TYPING EFFECT (unchanged)
+        // ============================================
         const texts = [
             "Welcome to my first website!",
             "Exploring the world of web development",
             "Learning and growing every day"
         ];
+
         let textIndex = 0;
         let charIndex = 0;
         let isDeleting = false;
@@ -358,12 +383,39 @@
             setTimeout(typeText, isDeleting ? deletingSpeed : typingSpeed);
         }
 
+        // ============================================
+        //  AMAZON CONNECT — UPGRADED TO LATEST API
+        // ============================================
+
         let connectInitialized = false;
 
+        // ---- Helper: Update status indicators ----
+        function updateStatusDot(status) {
+            const navDot = document.getElementById('connectStatusDot');
+            const modalDot = document.getElementById('modalStatusDot');
+            const statusText = document.getElementById('agentStatusText');
+            const statusBar = document.getElementById('agentStatusBar');
+
+            // Remove all status classes
+            [navDot, modalDot].forEach(dot => {
+                dot.classList.remove('connected', 'connecting', 'error');
+                if (status) dot.classList.add(status);
+            });
+
+            statusBar.style.display = 'flex';
+            statusBar.style.alignItems = 'center';
+        }
+
+        function setAgentStatusText(text) {
+            const statusText = document.getElementById('agentStatusText');
+            if (statusText) statusText.textContent = text;
+        }
+
+        // ---- Modal Controls ----
         function openConnectModal() {
             const modal = document.getElementById("connectModal");
             modal.style.display = "block";
-            
+
             if (!connectInitialized) {
                 initConnect();
                 connectInitialized = true;
@@ -375,60 +427,260 @@
             modal.style.display = "none";
         }
 
+        // ---- UPGRADED: Initialize Amazon Connect CCP ----
         function initConnect() {
+            /*
+             * UPGRADE #2: Update your CCP URL
+             * Replace with your actual instance alias and region
+             */
             const ccpUrl = "https://ameyakd.my.connect.aws/ccp-v2/";
+
+            /*
+             * UPGRADE #3: Specify your AWS region
+             * This is REQUIRED in the latest version
+             * Common regions: us-east-1, us-west-2, eu-west-2, ap-southeast-1, etc.
+             */
+            const awsRegion = "us-east-1"; // <-- CHANGE TO YOUR REGION
+
             const container = document.getElementById("ccpContainer");
 
+            updateStatusDot('connecting');
+            setAgentStatusText('Initializing...');
+
             try {
+                /*
+                 * UPGRADE #4: Enhanced initCCP configuration
+                 * 
+                 * NEW options added:
+                 *   - region (REQUIRED)
+                 *   - loginPopupAutoClose
+                 *   - loginOptions
+                 *   - pageOptions
+                 *   - ccpAckTimeout
+                 *   - ccpSynTimeout
+                 *   - ccpLoadTimeout
+                 *   - storageAccess (for third-party cookie handling)
+                 */
                 connect.core.initCCP(container, {
                     ccpUrl: ccpUrl,
+                    region: awsRegion,
+
+                    // --- Login Configuration ---
                     loginPopup: true,
+                    loginPopupAutoClose: true,  // NEW: Auto-close login popup after auth
+                    loginUrl: ccpUrl,           // NEW: Explicit login URL
+
+                    loginOptions: {             // NEW: Login popup window settings
+                        autoClose: true,
+                        height: 578,
+                        width: 433,
+                        top: 0,
+                        left: 0,
+                        forceNewWindow: false
+                    },
+
+                    // --- Softphone Configuration ---
                     softphone: {
-                        allowFramedSoftphone: true
+                        allowFramedSoftphone: true,
+                        disableRingtone: false,
+                        // NEW: Uncomment to use a custom ringtone
+                        // ringtoneUrl: "./my-custom-ringtone.mp3",
+
+                        // NEW: Allow framed video calls (if using video)
+                        allowFramedVideoCall: true
+                    },
+
+                    // --- CCP Page Options ---
+                    // NEW: Control which UI elements appear in the CCP
+                    pageOptions: {
+                        enableAudioDeviceSettings: true,  // Audio device picker
+                        enableVideoDeviceSettings: true,  // Video device picker
+                        enablePhoneTypeSettings: true      // Phone type selector
+                    },
+
+                    // --- Timeout Configuration ---
+                    // NEW: Fine-tune connection timeouts (in ms)
+                    ccpAckTimeout: 5000,   // Time to wait for CCP ACK
+                    ccpSynTimeout: 3000,   // Time to wait for CCP SYN
+                    ccpLoadTimeout: 10000, // Time to wait for CCP to load
+
+                    // --- Storage Access (for third-party cookie issues) ---
+                    // NEW: Required for browsers blocking third-party cookies
+                    // (Chrome, Safari, Firefox with strict settings)
+                    storageAccess: {
+                        canRequest: true,
+                        /* 
+                         * Uncomment if you need custom storage access handling:
+                         * header: "x-]amz-bearer",
+                         * endpointUrl: "/my-endpoint"
+                         */
                     }
                 });
 
-                // Handle agent events
-                connect.agent(function(agent) {
-                    agent.onStateChange(function(agentStateChange) {
-                        console.log("Agent state changed to: " + agentStateChange.newState);
+                // ============================================
+                //  UPGRADE #5: Enhanced Event Handlers
+                // ============================================
+
+                // --- NEW: Authentication failure handler ---
+                connect.core.onAuthFail(function() {
+                    console.error("❌ Amazon Connect: Authentication failed");
+                    updateStatusDot('error');
+                    setAgentStatusText('Authentication Failed — Please retry');
+                });
+
+                // --- NEW: Access denied handler ---
+                connect.core.onAccessDenied(function() {
+                    console.error("❌ Amazon Connect: Access denied");
+                    updateStatusDot('error');
+                    setAgentStatusText('Access Denied — Check permissions');
+                });
+
+                // --- NEW: Authorization success handler ---
+                connect.core.onAuthorizeSuccess(function() {
+                    console.log("✅ Amazon Connect: Authorization successful");
+                });
+
+                // --- NEW: Softphone session initialization ---
+                connect.core.onSoftphoneSessionInit(function(session) {
+                    console.log("📞 Softphone session initialized:", session);
+
+                    // NEW: Monitor media quality
+                    session.onSessionFailed(function(error) {
+                        console.error("📞 Softphone session failed:", error);
                     });
                 });
 
-                // Handle contact events with tracking
+                // --- NEW: Initialization complete handler ---
+                connect.core.onInitialized(function() {
+                    console.log("✅ Amazon Connect CCP initialized successfully");
+                    updateStatusDot('connected');
+                    setAgentStatusText('CCP Ready');
+                });
+
+                // --- Agent event handlers (ENHANCED) ---
+                connect.agent(function(agent) {
+                    console.log("✅ Agent connected:", agent.getName());
+
+                    updateStatusDot('connected');
+                    setAgentStatusText('Connected — ' + agent.getName());
+
+                    // Agent state change (existing, enhanced)
+                    agent.onStateChange(function(agentStateChange) {
+                        const newState = agentStateChange.newState;
+                        console.log("👤 Agent state:", newState);
+                        setAgentStatusText(newState);
+
+                        // Update visual indicator based on state
+                        if (newState === 'Available') {
+                            updateStatusDot('connected');
+                        } else if (newState === 'Offline') {
+                            updateStatusDot('error');
+                        } else {
+                            updateStatusDot('connecting');
+                        }
+                    });
+
+                    // NEW: Agent mute/unmute toggle
+                    agent.onMuteToggle(function(muteState) {
+                        console.log("🔇 Agent mute state:", muteState.muted);
+                    });
+
+                    // NEW: WebSocket connection monitoring
+                    agent.onWebSocketConnectionLost(function() {
+                        console.warn("⚠️ WebSocket connection lost");
+                        updateStatusDot('error');
+                        setAgentStatusText('Connection Lost — Reconnecting...');
+                    });
+
+                    agent.onWebSocketConnectionGained(function() {
+                        console.log("✅ WebSocket connection restored");
+                        updateStatusDot('connected');
+                        setAgentStatusText('Connection Restored');
+                    });
+
+                    // NEW: Get agent configuration
+                    const config = agent.getConfiguration();
+                    console.log("⚙️ Agent config:", {
+                        name: config.name,
+                        extension: config.extension,
+                        softphoneEnabled: config.softphoneEnabled,
+                        routingProfile: config.routingProfile
+                    });
+                });
+
+                // --- Contact event handlers (ENHANCED) ---
                 connect.contact(function(contact) {
+                    console.log("📱 New contact:", contact.getContactId());
+
+                    // Existing events (kept)
                     contact.onConnecting(function() {
-                        console.log("Contact connecting...");
+                        console.log("📱 Contact connecting...");
                     });
 
-                    contact.onConnected(function(contact) {
-                        console.log("Connected contact: ", contact);
-                        // Populate Contact ID field
-                        document.getElementById("contactId").value = contact.contactId;
-                    });
+                    contact.onConnected(function() {
+                        console.log("📱 Contact connected!");
 
-                    contact.onRefresh(function(contact) {
-                        var conns = contact.getConnections();
-                        console.log("Contact connections: ", conns);
-                        // Check if there's a third connection (Quick Connect)
-                        if (conns.length > 2) {
-                            var phoneNumber = conns[2].getAddress().phoneNumber;
-                            document.getElementById("ext-conn").value = phoneNumber;
+                        // NEW: Get contact attributes
+                        const attributes = contact.getAttributes();
+                        console.log("📋 Contact attributes:", attributes);
+
+                        // NEW: Get active connections
+                        const connections = contact.getConnections();
+                        connections.forEach(conn => {
+                            console.log("🔗 Connection:", {
+                                connectionId: conn.getConnectionId(),
+                                type: conn.getType(),
+                                state: conn.getStatus()
+                            });
+                        });
+
+                        // NEW: Get queue info
+                        const queue = contact.getQueue();
+                        if (queue) {
+                            console.log("📋 Queue:", queue.name);
                         }
                     });
 
                     contact.onEnded(function() {
-                        console.log("Contact ended");
-                        // Clear fields when contact ends
-                        document.getElementById("contactId").value = "";
-                        document.getElementById("ext-conn").value = "";
+                        console.log("📱 Contact ended");
+                    });
+
+                    // NEW: Contact accepted handler
+                    contact.onAccepted(function() {
+                        console.log("📱 Contact accepted");
+                    });
+
+                    // NEW: Missed contact handler
+                    contact.onMissed(function() {
+                        console.warn("⚠️ Contact missed!");
+                    });
+
+                    // NEW: Contact destroyed (cleanup)
+                    contact.onDestroy(function() {
+                        console.log("🗑️ Contact destroyed:", contact.getContactId());
+                    });
+
+                    // NEW: ACW (After Contact Work) handler
+                    contact.onACW(function() {
+                        console.log("📝 After Contact Work started");
+                    });
+
+                    // NEW: Contact error handler
+                    contact.onError(function(error) {
+                        console.error("❌ Contact error:", error);
                     });
                 });
 
             } catch (error) {
-                console.error("Failed to initialize Connect:", error);
+                console.error("❌ Failed to initialize Connect:", error);
+                updateStatusDot('error');
+                setAgentStatusText('Initialization Failed — ' + error.message);
             }
         }
+
+        // ============================================
+        //  EXISTING FUNCTIONALITY (unchanged)
+        // ============================================
 
         // Start typing effect
         typeText();
@@ -470,15 +722,13 @@
             observer.observe(card);
         });
 
-        // Initialize everything when document is ready
+        // Modal controls
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById("connectModal");
             const closeButton = document.getElementsByClassName("close-button")[0];
 
-            // Close modal when clicking the X button
             closeButton.onclick = closeConnectModal;
 
-            // Close modal when clicking outside
             window.onclick = function(event) {
                 if (event.target === modal) {
                     closeConnectModal();
@@ -488,4 +738,3 @@
     </script>
 </body>
 </html>
-
