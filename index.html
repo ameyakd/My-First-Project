@@ -7,14 +7,7 @@
           content="frame-ancestors 'self' https://*.aws.amazon.com https://*.my.connect.aws;">
     <title>Ameya KD's Portfolio</title>
 
-    <!-- 
-        UPGRADE #1: Use the latest minified release 
-        Old: connect-streams.js (unversioned, unminified)
-        New: connect-streams-min.js (latest minified build)
-        
-        Alternative: Install via npm
-        npm install amazon-connect-streams
-    -->
+    <!-- Amazon Connect Streams API (Latest Minified) -->
     <script src="https://amazon-connect.github.io/amazon-connect-streams/release/connect-streams-min.js"></script>
 
     <style>
@@ -181,12 +174,14 @@
 
         .modal-content {
             background: rgba(255, 255, 255, 0.1);
-            margin: 5% auto;
+            margin: 3% auto;
             padding: 20px;
             border-radius: 10px;
             width: 440px;
             position: relative;
             box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .close-button {
@@ -227,7 +222,7 @@
             box-shadow: 0 0 20px rgba(0,255,136,0.3);
         }
 
-        /* UPGRADE: Status indicator for connection state */
+        /* Status indicator */
         .connect-status {
             display: inline-block;
             width: 10px;
@@ -265,11 +260,92 @@
             background: rgba(0, 0, 0, 0.3);
             font-size: 0.85rem;
             display: none;
+            align-items: center;
+        }
+
+        /* =============================================
+           NEW: Contact Info Fields Styling
+           ============================================= */
+        .contact-info-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .contact-info-panel h4 {
+            color: #00ff88;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .contact-field {
+            margin-bottom: 10px;
+        }
+
+        .contact-field:last-child {
+            margin-bottom: 0;
+        }
+
+        .contact-field label {
+            display: block;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .contact-field input {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+
+        .contact-field input:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .contact-field input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Subtle animation when value is auto-populated */
+        .contact-field input.value-updated {
+            animation: fieldFlash 0.5s ease;
+        }
+
+        @keyframes fieldFlash {
+            0% { border-color: rgba(255, 255, 255, 0.2); }
+            50% { border-color: #00ff88; box-shadow: 0 0 12px rgba(0, 255, 136, 0.4); }
+            100% { border-color: rgba(255, 255, 255, 0.2); }
         }
 
         @media (max-width: 768px) {
             .hero-content h1 {
                 font-size: 2.5rem;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 2% auto;
+            }
+
+            #ccpContainer {
+                width: 100%;
             }
         }
     </style>
@@ -332,21 +408,54 @@
         </div>
     </section>
 
-    <!-- UPGRADE: Enhanced modal with status bar -->
+    <!-- =============================================
+         MODAL — with NEW Contact Info Fields
+         ============================================= -->
     <div id="connectModal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
+
+            <!-- Agent Status Bar -->
             <div class="agent-status-bar" id="agentStatusBar">
                 <span class="connect-status" id="modalStatusDot"></span>
                 Agent Status: <span id="agentStatusText">Initializing...</span>
             </div>
+
+            <!-- =============================================
+                 NEW: Contact Information Panel
+                 ============================================= -->
+            <div class="contact-info-panel" id="contactInfoPanel">
+                <h4>📞 Live Contact Information</h4>
+
+                <!-- Contact ID Field -->
+                <div class="contact-field">
+                    <label for="contactId">Contact ID:</label>
+                    <input type="text" 
+                           id="contactId" 
+                           name="contactId" 
+                           placeholder="Waiting for contact..." 
+                           readonly>
+                </div>
+
+                <!-- Quick Connect Phone Number Field -->
+                <div class="contact-field">
+                    <label for="ext-conn">Quick Connect / Third-Party Phone Number:</label>
+                    <input type="text" 
+                           id="ext-conn" 
+                           name="ext-conn" 
+                           placeholder="Waiting for external connection..." 
+                           readonly>
+                </div>
+            </div>
+
+            <!-- Amazon Connect CCP Container -->
             <div id="ccpContainer"></div>
         </div>
     </div>
 
     <script>
         // ============================================
-        //  TYPING EFFECT (unchanged)
+        //  TYPING EFFECT
         // ============================================
         const texts = [
             "Welcome to my first website!",
@@ -384,7 +493,7 @@
         }
 
         // ============================================
-        //  AMAZON CONNECT — UPGRADED TO LATEST API
+        //  AMAZON CONNECT — UPGRADED + CONTACT FIELDS
         // ============================================
 
         let connectInitialized = false;
@@ -393,10 +502,8 @@
         function updateStatusDot(status) {
             const navDot = document.getElementById('connectStatusDot');
             const modalDot = document.getElementById('modalStatusDot');
-            const statusText = document.getElementById('agentStatusText');
             const statusBar = document.getElementById('agentStatusBar');
 
-            // Remove all status classes
             [navDot, modalDot].forEach(dot => {
                 dot.classList.remove('connected', 'connecting', 'error');
                 if (status) dot.classList.add(status);
@@ -409,6 +516,39 @@
         function setAgentStatusText(text) {
             const statusText = document.getElementById('agentStatusText');
             if (statusText) statusText.textContent = text;
+        }
+
+        // ---- NEW: Helper to update input fields with flash animation ----
+        function updateContactField(fieldId, value) {
+            const field = document.getElementById(fieldId);
+            if (field && value) {
+                field.value = value;
+
+                // Trigger flash animation
+                field.classList.remove('value-updated');
+                // Force reflow to restart animation
+                void field.offsetWidth;
+                field.classList.add('value-updated');
+
+                console.log(`📋 Updated ${fieldId}:`, value);
+            }
+        }
+
+        // ---- NEW: Clear contact fields when call ends ----
+        function clearContactFields() {
+            const contactIdField = document.getElementById('contactId');
+            const extConnField = document.getElementById('ext-conn');
+
+            if (contactIdField) {
+                contactIdField.value = '';
+                contactIdField.placeholder = 'Waiting for contact...';
+            }
+            if (extConnField) {
+                extConnField.value = '';
+                extConnField.placeholder = 'Waiting for external connection...';
+            }
+
+            console.log("🗑️ Contact fields cleared");
         }
 
         // ---- Modal Controls ----
@@ -427,19 +567,9 @@
             modal.style.display = "none";
         }
 
-        // ---- UPGRADED: Initialize Amazon Connect CCP ----
+        // ---- Initialize Amazon Connect CCP ----
         function initConnect() {
-            /*
-             * UPGRADE #2: Update your CCP URL
-             * Replace with your actual instance alias and region
-             */
             const ccpUrl = "https://ameyakd.my.connect.aws/ccp-v2/";
-
-            /*
-             * UPGRADE #3: Specify your AWS region
-             * This is REQUIRED in the latest version
-             * Common regions: us-east-1, us-west-2, eu-west-2, ap-southeast-1, etc.
-             */
             const awsRegion = "us-east-1"; // <-- CHANGE TO YOUR REGION
 
             const container = document.getElementById("ccpContainer");
@@ -448,29 +578,16 @@
             setAgentStatusText('Initializing...');
 
             try {
-                /*
-                 * UPGRADE #4: Enhanced initCCP configuration
-                 * 
-                 * NEW options added:
-                 *   - region (REQUIRED)
-                 *   - loginPopupAutoClose
-                 *   - loginOptions
-                 *   - pageOptions
-                 *   - ccpAckTimeout
-                 *   - ccpSynTimeout
-                 *   - ccpLoadTimeout
-                 *   - storageAccess (for third-party cookie handling)
-                 */
                 connect.core.initCCP(container, {
                     ccpUrl: ccpUrl,
                     region: awsRegion,
 
-                    // --- Login Configuration ---
+                    // Login Configuration
                     loginPopup: true,
-                    loginPopupAutoClose: true,  // NEW: Auto-close login popup after auth
-                    loginUrl: ccpUrl,           // NEW: Explicit login URL
+                    loginPopupAutoClose: true,
+                    loginUrl: ccpUrl,
 
-                    loginOptions: {             // NEW: Login popup window settings
+                    loginOptions: {
                         autoClose: true,
                         height: 578,
                         width: 433,
@@ -479,98 +596,75 @@
                         forceNewWindow: false
                     },
 
-                    // --- Softphone Configuration ---
+                    // Softphone Configuration
                     softphone: {
                         allowFramedSoftphone: true,
                         disableRingtone: false,
-                        // NEW: Uncomment to use a custom ringtone
-                        // ringtoneUrl: "./my-custom-ringtone.mp3",
-
-                        // NEW: Allow framed video calls (if using video)
                         allowFramedVideoCall: true
                     },
 
-                    // --- CCP Page Options ---
-                    // NEW: Control which UI elements appear in the CCP
+                    // CCP Page Options
                     pageOptions: {
-                        enableAudioDeviceSettings: true,  // Audio device picker
-                        enableVideoDeviceSettings: true,  // Video device picker
-                        enablePhoneTypeSettings: true      // Phone type selector
+                        enableAudioDeviceSettings: true,
+                        enableVideoDeviceSettings: true,
+                        enablePhoneTypeSettings: true
                     },
 
-                    // --- Timeout Configuration ---
-                    // NEW: Fine-tune connection timeouts (in ms)
-                    ccpAckTimeout: 5000,   // Time to wait for CCP ACK
-                    ccpSynTimeout: 3000,   // Time to wait for CCP SYN
-                    ccpLoadTimeout: 10000, // Time to wait for CCP to load
+                    // Timeout Configuration
+                    ccpAckTimeout: 5000,
+                    ccpSynTimeout: 3000,
+                    ccpLoadTimeout: 10000,
 
-                    // --- Storage Access (for third-party cookie issues) ---
-                    // NEW: Required for browsers blocking third-party cookies
-                    // (Chrome, Safari, Firefox with strict settings)
+                    // Storage Access
                     storageAccess: {
-                        canRequest: true,
-                        /* 
-                         * Uncomment if you need custom storage access handling:
-                         * header: "x-]amz-bearer",
-                         * endpointUrl: "/my-endpoint"
-                         */
+                        canRequest: true
                     }
                 });
 
-                // ============================================
-                //  UPGRADE #5: Enhanced Event Handlers
-                // ============================================
+                // ---- Core Event Handlers ----
 
-                // --- NEW: Authentication failure handler ---
                 connect.core.onAuthFail(function() {
-                    console.error("❌ Amazon Connect: Authentication failed");
+                    console.error("❌ Authentication failed");
                     updateStatusDot('error');
                     setAgentStatusText('Authentication Failed — Please retry');
                 });
 
-                // --- NEW: Access denied handler ---
                 connect.core.onAccessDenied(function() {
-                    console.error("❌ Amazon Connect: Access denied");
+                    console.error("❌ Access denied");
                     updateStatusDot('error');
                     setAgentStatusText('Access Denied — Check permissions');
                 });
 
-                // --- NEW: Authorization success handler ---
                 connect.core.onAuthorizeSuccess(function() {
-                    console.log("✅ Amazon Connect: Authorization successful");
+                    console.log("✅ Authorization successful");
                 });
 
-                // --- NEW: Softphone session initialization ---
                 connect.core.onSoftphoneSessionInit(function(session) {
                     console.log("📞 Softphone session initialized:", session);
-
-                    // NEW: Monitor media quality
                     session.onSessionFailed(function(error) {
                         console.error("📞 Softphone session failed:", error);
                     });
                 });
 
-                // --- NEW: Initialization complete handler ---
                 connect.core.onInitialized(function() {
-                    console.log("✅ Amazon Connect CCP initialized successfully");
+                    console.log("✅ CCP initialized successfully");
                     updateStatusDot('connected');
                     setAgentStatusText('CCP Ready');
                 });
 
-                // --- Agent event handlers (ENHANCED) ---
+                // ---- Agent Event Handlers ----
+
                 connect.agent(function(agent) {
                     console.log("✅ Agent connected:", agent.getName());
 
                     updateStatusDot('connected');
                     setAgentStatusText('Connected — ' + agent.getName());
 
-                    // Agent state change (existing, enhanced)
                     agent.onStateChange(function(agentStateChange) {
                         const newState = agentStateChange.newState;
                         console.log("👤 Agent state:", newState);
                         setAgentStatusText(newState);
 
-                        // Update visual indicator based on state
                         if (newState === 'Available') {
                             updateStatusDot('connected');
                         } else if (newState === 'Offline') {
@@ -580,12 +674,10 @@
                         }
                     });
 
-                    // NEW: Agent mute/unmute toggle
                     agent.onMuteToggle(function(muteState) {
-                        console.log("🔇 Agent mute state:", muteState.muted);
+                        console.log("🔇 Mute state:", muteState.muted);
                     });
 
-                    // NEW: WebSocket connection monitoring
                     agent.onWebSocketConnectionLost(function() {
                         console.warn("⚠️ WebSocket connection lost");
                         updateStatusDot('error');
@@ -598,7 +690,6 @@
                         setAgentStatusText('Connection Restored');
                     });
 
-                    // NEW: Get agent configuration
                     const config = agent.getConfiguration();
                     console.log("⚙️ Agent config:", {
                         name: config.name,
@@ -608,64 +699,127 @@
                     });
                 });
 
-                // --- Contact event handlers (ENHANCED) ---
+                // ============================================
+                //  CONTACT EVENT HANDLERS
+                //  (MERGED: Original + New Contact Fields)
+                // ============================================
+
                 connect.contact(function(contact) {
                     console.log("📱 New contact:", contact.getContactId());
 
-                    // Existing events (kept)
+                    // ---- onConnecting ----
                     contact.onConnecting(function() {
                         console.log("📱 Contact connecting...");
+
+                        // Pre-fill contact ID as soon as we know it
+                        updateContactField('contactId', contact.getContactId());
                     });
 
-                    contact.onConnected(function() {
-                        console.log("📱 Contact connected!");
+                    // ---- onConnected ----
+                    /*
+                     * NEW: When contact connects, auto-populate the
+                     * Contact ID field with the contact's ID
+                     */
+                    contact.onConnected(function(contact) {
+                        console.log("📱 Contact connected:", contact);
 
-                        // NEW: Get contact attributes
+                        // Populate Contact ID field
+                        updateContactField('contactId', contact.contactId);
+
+                        // Log contact attributes
                         const attributes = contact.getAttributes();
                         console.log("📋 Contact attributes:", attributes);
 
-                        // NEW: Get active connections
+                        // Log connections
                         const connections = contact.getConnections();
-                        connections.forEach(conn => {
-                            console.log("🔗 Connection:", {
+                        connections.forEach((conn, index) => {
+                            console.log(`🔗 Connection[${index}]:`, {
                                 connectionId: conn.getConnectionId(),
                                 type: conn.getType(),
                                 state: conn.getStatus()
                             });
                         });
 
-                        // NEW: Get queue info
+                        // Log queue info
                         const queue = contact.getQueue();
                         if (queue) {
                             console.log("📋 Queue:", queue.name);
                         }
                     });
 
-                    contact.onEnded(function() {
-                        console.log("📱 Contact ended");
+                    // ---- onRefresh ----
+                    /*
+                     * NEW: On every contact refresh, check if a third-party
+                     * connection exists (Quick Connect / external transfer)
+                     * and populate the phone number field
+                     * 
+                     * Connection indexes:
+                     *   [0] = Agent connection
+                     *   [1] = Customer connection
+                     *   [2] = Third-party / Quick Connect connection (if exists)
+                     */
+                    contact.onRefresh(function(contact) {
+                        var conns = contact.getConnections();
+                        console.log("🔄 Contact refreshed — Connections:", conns.length);
+
+                        // Log all connections for debugging
+                        conns.forEach(function(conn, index) {
+                            var address = conn.getAddress();
+                            console.log(`   Connection[${index}]:`, {
+                                type: conn.getType(),
+                                state: conn.getStatus(),
+                                phone: address ? address.phoneNumber : 'N/A'
+                            });
+                        });
+
+                        // If 3+ connections exist, a Quick Connect / transfer happened
+                        if (conns.length > 2) {
+                            var thirdPartyAddress = conns[2].getAddress();
+                            if (thirdPartyAddress && thirdPartyAddress.phoneNumber) {
+                                updateContactField(
+                                    'ext-conn', 
+                                    thirdPartyAddress.phoneNumber
+                                );
+                                console.log(
+                                    "📞 Third-party connected:", 
+                                    thirdPartyAddress.phoneNumber
+                                );
+                            }
+                        }
                     });
 
-                    // NEW: Contact accepted handler
+                    // ---- onAccepted ----
                     contact.onAccepted(function() {
                         console.log("📱 Contact accepted");
                     });
 
-                    // NEW: Missed contact handler
+                    // ---- onMissed ----
                     contact.onMissed(function() {
                         console.warn("⚠️ Contact missed!");
+                        clearContactFields();
                     });
 
-                    // NEW: Contact destroyed (cleanup)
-                    contact.onDestroy(function() {
-                        console.log("🗑️ Contact destroyed:", contact.getContactId());
-                    });
-
-                    // NEW: ACW (After Contact Work) handler
+                    // ---- onACW (After Contact Work) ----
                     contact.onACW(function() {
                         console.log("📝 After Contact Work started");
                     });
 
-                    // NEW: Contact error handler
+                    // ---- onEnded ----
+                    contact.onEnded(function() {
+                        console.log("📱 Contact ended");
+                    });
+
+                    // ---- onDestroy ----
+                    /*
+                     * Clear the contact fields when the contact
+                     * is fully destroyed (removed from agent's view)
+                     */
+                    contact.onDestroy(function() {
+                        console.log("🗑️ Contact destroyed:", contact.getContactId());
+                        clearContactFields();
+                    });
+
+                    // ---- onError ----
                     contact.onError(function(error) {
                         console.error("❌ Contact error:", error);
                     });
@@ -679,7 +833,7 @@
         }
 
         // ============================================
-        //  EXISTING FUNCTIONALITY (unchanged)
+        //  EXISTING FUNCTIONALITY
         // ============================================
 
         // Start typing effect
